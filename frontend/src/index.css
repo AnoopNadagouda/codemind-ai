@@ -1,0 +1,40 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  background: #080808;
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: #080808;
+}
+
+#root {
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(96, 165, 250, 0.28);
+  color: #ffffff;
+}
