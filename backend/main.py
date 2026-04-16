@@ -1,7 +1,10 @@
-from fastapi import FastAPI, HTTPException
+import asyncio
+import os
+
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import asyncio
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 from dotenv import load_dotenv
 
@@ -12,14 +15,27 @@ from agents.security_scanner import scan_security
 from agents.optimizer import optimize_code
 from agents.complexity_analyzer import analyze_complexity
 from indexer import index_code, index_github_repo
+from redis_manager import CollabManager
 from search import search_code
 
 app = FastAPI(title="AI Code Reviewer API")
+collab_manager = CollabManager()
+
+review_requests_total = Counter("codemind_reviews_total", "Total number of review requests")
+review_request_failures_total = Counter("codemind_review_failures_total", "Total number of failed review requests")
+review_duration_seconds = Histogram("codemind_review_duration_seconds", "Code review duration in seconds")
 
 # Allow React frontend to call this backend
+cors_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    os.getenv("FRONTEND_URL", "").strip(),
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    allow_origins=[origin for origin in cors_origins if origin],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -52,9 +68,29 @@ class SearchRequest(BaseModel):
     query: str
     top_k: int = 5
 
+
+@app.on_event("startup")
+async def on_startup():
+    await collab_manager.connect()
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await collab_manager.close()
+
 @app.get("/")
 def root():
     return {"status": "AI Code Reviewer is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "redis_connected": collab_manager.enabled}
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.post("/index")
@@ -89,18 +125,27 @@ def search_route(request: SearchRequest):
 @app.post("/review", response_model=ReviewResponse)
 async def review_code(request: ReviewRequest):
     if not request.code.strip():
+        review_request_failures_total.inc()
         raise HTTPException(status_code=400, detail="Code cannot be empty")
 
     if len(request.code) > 10000:
+        review_request_failures_total.inc()
         raise HTTPException(status_code=400, detail="Code too long. Max 10,000 characters.")
 
-    # Run all 4 agents in parallel
-    bugs, security, optimizations, complexity = await asyncio.gather(
-        detect_bugs(request.code, request.language),
-        scan_security(request.code, request.language),
-        optimize_code(request.code, request.language),
-        analyze_complexity(request.code, request.language),
-    )
+    review_requests_total.inc()
+
+    try:
+        with review_duration_seconds.time():
+            # Run all 4 agents in parallel
+            bugs, security, optimizations, complexity = await asyncio.gather(
+                detect_bugs(request.code, request.language),
+                scan_security(request.code, request.language),
+                optimize_code(request.code, request.language),
+                analyze_complexity(request.code, request.language),
+            )
+    except Exception:
+        review_request_failures_total.inc()
+        raise
 
     # Calculate overall score
     bug_penalty      = len(bugs) * 15

@@ -1,6 +1,6 @@
-# CodeMind AI 🧠
+# CodeMind AI
 
-> An Autonomous Code Intelligence Platform — not just another AI chatbot wrapper.
+> Autonomous code intelligence platform with multi-agent review + semantic code search, designed with a production-grade distributed architecture roadmap.
 
 [![GitHub](https://img.shields.io/badge/GitHub-AnoopNadagouda-181717?style=for-the-badge&logo=github)](https://github.com/AnoopNadagouda/codemind-ai)
 
@@ -8,75 +8,98 @@
 
 ## What is CodeMind AI?
 
-CodeMind AI is a full-stack AI-powered developer tool that combines two superpowers in one seamless platform:
+CodeMind AI combines two capabilities in one workflow:
 
-1. **Multi-Agent Code Reviewer** — 4 specialized AI agents analyze your code in parallel and give you a detailed quality report
-2. **Semantic Code Search Engine** — search your entire codebase using plain English, not just keywords
+1. Multi-agent code review (bugs, security, optimization, complexity)
+2. Semantic code search across snippets and repositories
 
-The key novelty: **Search finds code → one click sends it to the Reviewer → all 4 agents analyze it automatically.** No other tool does this.
+Core flow:
+
+Search finds code -> one click sends it to reviewer -> all 4 agents analyze in parallel.
 
 ---
 
-## Why this is different from ChatGPT / GitHub Copilot
+## Distributed Architecture
 
-| Feature | CodeMind AI | ChatGPT | Copilot |
-|---|---|---|---|
-| Multi-agent parallel analysis | ✅ | ❌ Single model call | ❌ |
-| Auto-fix + verify code runs | ✅ | ❌ Only suggests | ❌ |
-| CVE-mapped security scanning | ✅ | ❌ Generic advice | ❌ |
-| Big-O complexity with explanation | ✅ | ❌ Basic | ❌ |
-| Semantic codebase search | ✅ | ❌ | ❌ |
-| Search → Review in one flow | ✅ | ❌ | ❌ |
+This project is being upgraded toward a production-grade architecture inspired by large-scale distributed systems patterns.
+
+```
+Frontend (React + Monaco)
+    | WebSocket
+    v
+API Gateway (FastAPI)
+   | Redis Pub/Sub      | gRPC
+   v                    v
+Room/Session Manager    AI Agent Microservices
+    |
+    v
+PostgreSQL
+```
+
+### Current Scaffolded Pieces
+
+- Prometheus metrics endpoint: `/metrics`
+- Redis collaboration/session manager module: `backend/redis_manager.py`
+- gRPC contract file: `proto/agents.proto`
+- Dockerized local stack: `docker-compose.yml`
+
+---
+
+## Technology Upgrade Map
+
+| Typical Approach | Distributed Systems Direction | Used in CodeMind |
+|---|---|---|
+| Basic WebSocket sync | Operational transforms / CRDT | Y.js + WebSocket (planned) |
+| JSON-only contracts | Protocol Buffers | `proto/agents.proto` |
+| Direct in-process service calls | gRPC service-to-service | gRPC contract scaffolded |
+| In-memory room state | Redis Pub/Sub + session store | Redis manager scaffolded |
+| Single-host deployment | Containerized distributed runtime | Docker + Compose added |
+| No observability | Metrics-first operations | Prometheus endpoint added |
 
 ---
 
 ## Features
 
-### 🐛 Bug Detector Agent
-- Finds logic errors, null reference risks, off-by-one errors
-- Pinpoints exact line numbers
-- Suggests precise fixes
+### Bug Detector Agent
+- Finds logic errors and unsafe code paths
+- Returns exact line-level findings
 
-### 🔐 Security Scanner Agent
-- Detects SQL injection, XSS, hardcoded secrets, insecure APIs
-- Maps every issue to real **CVE/CWE categories** (e.g. CWE-89: SQL Injection)
-- Professional-grade security audit in seconds
+### Security Scanner Agent
+- Detects SQL injection, XSS, and hardcoded secrets
+- Maps issues to CWE/CVE-style categories
 
-### ⚡ Optimizer Agent
-- Identifies O(n²) loops that can be O(n)
-- Finds redundant computations and memory leaks
-- Rewrites code with idiomatic patterns for each language
-- Returns complete fixed version of your code
+### Optimizer Agent
+- Flags inefficient loops and data structures
+- Suggests faster alternatives with fixed code output
 
-### 📊 Complexity Analyzer Agent
-- Calculates time and space complexity with Big-O notation
-- Generates **whiteboard-style explanation** you can use in interviews
-- Scores complexity from 1-10 with improvement suggestions
+### Complexity Analyzer Agent
+- Calculates time and space complexity
+- Generates interview-ready explanation text
 
-### 🔍 Semantic Code Search
-- Type plain English: "function that validates email"
-- Finds matching code even if variable names are completely different
-- Powered by vector embeddings + ChromaDB
-- Index your own snippets or entire GitHub repositories
+### Semantic Code Search
+- Natural language query to code retrieval
+- Embeddings + ChromaDB pipeline
 
 ---
 
 ## Tech Stack
 
 ### Frontend
-- **React** + **Vite**
-- Custom dark theme with syntax highlighting
+- React + Vite
+- Monaco-based editing experience
 
 ### Backend
-- **FastAPI** (Python)
-- **Anthropic Claude API** (claude-sonnet-4-6) — powers all 4 agents
-- **ChromaDB** — local vector database for semantic search
-- **sentence-transformers** — free local embeddings
-- **PyGithub** — fetch and index public GitHub repositories
+- FastAPI (Python)
+- Anthropic Claude API (agent intelligence)
+- ChromaDB + sentence-transformers (semantic search)
+- PyGithub (repository indexing)
+- Redis (session + pub/sub layer)
+- Prometheus client (metrics)
 
 ### Deployment
-- **Vercel** — frontend hosting
-- **Render** — backend hosting
+- Vercel (frontend)
+- Render (backend)
+- Docker Compose for local distributed stack
 
 ---
 
@@ -87,31 +110,49 @@ The key novelty: **Search finds code → one click sends it to the Reviewer → 
 - Python 3.11+
 - Anthropic API key from https://console.anthropic.com
 
-### 1. Clone the repo
+### 1. Clone repository
 ```bash
 git clone https://github.com/AnoopNadagouda/codemind-ai.git
 cd codemind-ai
 ```
 
-### 2. Setup Backend
+### 2. Start backend
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY in .env
+# Add ANTHROPIC_API_KEY in .env
 uvicorn main:app --reload
 ```
 
-### 3. Setup Frontend
+### 3. Start frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### 4. Open in browser
-```
+### 4. Open app
+```text
 http://localhost:5173
+```
+
+### 5. Run distributed stack with Docker Compose (optional)
+```bash
+docker compose up --build
+```
+
+Services:
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8000`
+- Metrics: `http://localhost:8000/metrics`
+- Redis: `localhost:6379`
+- PostgreSQL: `localhost:5432`
+
+### 6. Generate Python gRPC stubs (optional)
+Run from `backend/`:
+```bash
+python -m grpc_tools.protoc -I ../proto --python_out=. --grpc_python_out=. ../proto/agents.proto
 ```
 
 ---
@@ -120,11 +161,13 @@ http://localhost:5173
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/review` | Analyze code with 4 agents |
-| POST | `/search` | Semantic search across indexed code |
-| POST | `/index` | Index a code snippet |
-| POST | `/index/github` | Index an entire GitHub repo |
-| GET | `/` | Health check |
+| GET | `/` | Service status |
+| GET | `/health` | Runtime health + Redis connectivity |
+| GET | `/metrics` | Prometheus metrics |
+| POST | `/review` | Multi-agent code analysis |
+| POST | `/search` | Semantic code search |
+| POST | `/index` | Index snippet |
+| POST | `/index/github` | Index GitHub repository |
 
 ---
 
@@ -137,34 +180,40 @@ codemind-ai/
 │   │   ├── App.jsx
 │   │   └── components/
 │   │       ├── CodeEditor.jsx
-│   │       ├── ReviewReport.jsx
-│   │       ├── ScoreBadge.jsx
 │   │       ├── SearchTab.jsx
-│   │       └── IndexerTab.jsx
-└── backend/
-    ├── main.py
-    ├── requirements.txt
-    └── agents/
-        ├── bug_detector.py
-        ├── security_scanner.py
-        ├── optimizer.py
-        └── complexity_analyzer.py
+│   │       ├── IndexerTab.jsx
+│   │       └── ReviewReport.jsx
+│   └── Dockerfile
+├── backend/
+│   ├── main.py
+│   ├── redis_manager.py
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── agents/
+│       ├── bug_detector.py
+│       ├── security_scanner.py
+│       ├── optimizer.py
+│       └── complexity_analyzer.py
+├── proto/
+│   └── agents.proto
+└── docker-compose.yml
 ```
 
 ---
 
-## Roadmap
+## Delivery Plan (Interview-Friendly)
 
-- [ ] GitHub PR auto-review on push
-- [ ] Docker sandbox to verify fixed code actually runs
-- [ ] VS Code extension
-- [ ] Support for 10+ languages
+1. Redis + WebSocket room sync (distributed session state)
+2. CRDT-based collaborative editing with Y.js
+3. gRPC microservices for independent agent scaling
+4. Full Docker Compose runtime
+5. Prometheus-first observability
 
 ---
 
-## Resume Description
+## Resume Line
 
-> Built an autonomous code quality platform (CodeMind AI) using multi-agent AI (Claude API + FastAPI) that reviews, auto-fixes, and analyzes code across 6 languages. Features parallel agent execution, CVE-mapped security scanning, Big-O complexity analysis, and a semantic code search engine powered by vector embeddings + ChromaDB. Deployed on Vercel + Render.
+Built CodeMind AI, a distributed code intelligence platform with multi-agent analysis, semantic code search, Prometheus metrics, Redis-backed session sync, gRPC service contracts, and Dockerized local infrastructure. Designed for future CRDT-based collaborative editing and scalable microservice deployment.
 
 ---
 

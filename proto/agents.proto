@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package codemind.agents;
+
+message CodeRequest {
+  string code = 1;
+  string language = 2;
+  string room_id = 3;
+}
+
+message Bug {
+  string message = 1;
+  int32 line = 2;
+  string severity = 3;
+  string suggestion = 4;
+}
+
+message SecurityIssue {
+  string message = 1;
+  int32 line = 2;
+  string severity = 3;
+  string cve_category = 4;
+  string suggestion = 5;
+}
+
+message Optimization {
+  string message = 1;
+  int32 line = 2;
+  string suggestion = 3;
+  string fixed_code = 4;
+}
+
+message ComplexityReport {
+  string time_complexity = 1;
+  string space_complexity = 2;
+  string notation = 3;
+  int32 score = 4;
+  string explanation = 5;
+  string improvement = 6;
+  bool is_optimal = 7;
+}
+
+message BugReport {
+  repeated Bug bugs = 1;
+}
+
+message SecurityReport {
+  repeated SecurityIssue issues = 1;
+}
+
+message OptimizationReport {
+  repeated Optimization optimizations = 1;
+}
+
+service BugDetector {
+  rpc AnalyzeCode(CodeRequest) returns (BugReport);
+}
+
+service SecurityScanner {
+  rpc AnalyzeCode(CodeRequest) returns (SecurityReport);
+}
+
+service Optimizer {
+  rpc AnalyzeCode(CodeRequest) returns (OptimizationReport);
+}
+
+service ComplexityAnalyzer {
+  rpc AnalyzeCode(CodeRequest) returns (ComplexityReport);
+}
