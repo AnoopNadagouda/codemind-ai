@@ -25,17 +25,30 @@ review_requests_total = Counter("codemind_reviews_total", "Total number of revie
 review_request_failures_total = Counter("codemind_review_failures_total", "Total number of failed review requests")
 review_duration_seconds = Histogram("codemind_review_duration_seconds", "Code review duration in seconds")
 
-# Allow React frontend to call this backend
-cors_origins = [
+# Allow local frontend by default and support Render/production origins via env.
+default_cors_origins = {
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
-    os.getenv("FRONTEND_URL", "").strip(),
-]
+}
+
+frontend_url = os.getenv("FRONTEND_URL", "").strip()
+if frontend_url:
+    default_cors_origins.add(frontend_url)
+
+extra_cors_origins = {
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "").split(",")
+    if origin.strip()
+}
+
+cors_origins = sorted(default_cors_origins | extra_cors_origins)
+cors_origin_regex = os.getenv("CORS_ORIGIN_REGEX", "").strip() or None
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin for origin in cors_origins if origin],
+    allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )
